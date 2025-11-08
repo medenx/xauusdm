@@ -920,3 +920,28 @@ To https://github.com/medenx/xau-sentinel.git
  1 file changed, 7 insertions(+)
 📝 Commit lokal otomatis dibuat.
 ⏳ Cek sinkron (Sat Nov  8 16:28:23 WIB 2025)...
+[main ee3d67b] AutoSync-local: 2025-11-08 16:28:23
+ 1 file changed, 4 insertions(+)
+📝 Commit lokal otomatis dibuat.
+warning: fetch updated the current branch head.
+fast-forwarding your working tree from
+commit 22c31e6046b2367be356c5c83c6b37399b9a0ca2.
+error: Your local changes to the following files would be overwritten by merge:
+	.sync.log
+Please commit your changes or stash them before you merge.
+Aborting
+fatal: Cannot fast-forward your working tree.
+After making sure that you saved anything precious from
+$ git diff 22c31e6046b2367be356c5c83c6b37399b9a0ca2
+output, run
+$ git reset --hard
+to recover.
+⚠️ Rebase gagal — fallback merge
+To https://github.com/medenx/xau-sentinel.git
+   a9e7721..ee3d67b  main -> main
+✅ Push ke origin/main sukses.
+To https://github.com/medenx/xau-sentinel.git
+ ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main': is at ee3d67b7cbcd252cf51e02be4254b45e8cb3300e but expected a9e7721538b5f2bb909a03eaa349a5be98642c38)
+error: failed to push some refs to 'https://github.com/medenx/xau-sentinel.git'
+❌ Push ke origin gagal.
+⏳ Cek sinkron (Sat Nov  8 16:28:38 WIB 2025)...

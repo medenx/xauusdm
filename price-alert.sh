@@ -29,7 +29,17 @@ while true; do
   LEVELS=$(get_key_levels)
   for LEVEL in $LEVELS; do
     if [[ -n "$PRICE" ]]; then
+  # Validasi harga sebelum kalkulasi
+  if [ -z "$PRICE" ] || [[ "$PRICE" == .* ]]; then
+    echo "[$DATE] ⚠️ Harga tidak valid, skip kalkulasi" | tee -a "$LOG"
+    continue
+  fi
   DIFF=$(echo "$PRICE - $LEVEL" | bc -l)
+  ABS=$(echo "${DIFF#-}")
+  if [[ -z "$ABS" || "$ABS" == "." ]]; then
+    echo "[$DATE] ⚠️ Nilai ABS tidak valid, skip" | tee -a "$LOG"
+    continue
+  fi
   ABS=$(echo "${DIFF#-}")
   if [[ -z "$ABS" || "$ABS" == "." ]]; then
     echo "[$DATE] ⚠️ Data tidak valid di LEVEL $LEVEL" | tee -a "$LOG"

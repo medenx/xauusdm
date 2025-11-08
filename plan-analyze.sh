@@ -1,101 +1,85 @@
 #!/bin/bash
-
 ROOT="$HOME/xau-sentinel"
-PLAN_DIR="$ROOT/plans"
-ANALYZE_DIR="$ROOT/analyses"
-ENV="$ROOT/.env"
-SEND="$ROOT/tg-send.sh"
-LOG="$ROOT/.plan.log"
+PLAN="$ROOT/plans/$(date +%F).md"
+ANALYZE="$ROOT/analyses/$(date +%F).md"
+mkdir -p "$ROOT/plans" "$ROOT/analyses"
 
-mkdir -p "$PLAN_DIR" "$ANALYZE_DIR"
+# Log helper
+log(){ echo "[$(date '+%H:%M:%S')] $1"; }
 
-DATE=$(date +%F)
-PLAN_FILE="$PLAN_DIR/$DATE.md"
-ANALYZE_FILE="$ANALYZE_DIR/$DATE.md"
-
-log() { echo "[$(date '+%H:%M:%S')] $1" | tee -a "$LOG"; }
-
-# 1. Cek / buat plan jika belum ada
-if [ ! -f "$PLAN_FILE" ]; then
-  sed "s/YYYY-MM-DD/$DATE/" "$ROOT/plan-template.md" > "$PLAN_FILE"
-  log "Plan dibuat otomatis: $PLAN_FILE"
+# Pastikan file plan
+if [ ! -f "$PLAN" ]; then
+  cp "$ROOT/plan-template.md" "$PLAN"
+  sed -i "s/YYYY-MM-DD/$(date +%F)/" "$PLAN"
+  log "⚠ Plan belum ada — template dibuat"
 else
-  log "Plan ditemukan: $PLAN_FILE"
+  log "✅ Plan ditemukan: $PLAN"
 fi
 
-# 2. Ambil data dari plan
-get_field() {
-  awk -v KEY="$1" 'BEGIN{IGNORECASE=1} 
-  $0 ~ "^"KEY"[[:space:]]*:" {sub("^[^:]*:[[:space:]]*", "", $0); print; exit}' "$PLAN_FILE"
-}
+# Ambil isi plan
+BIAS=$(grep -i "Bias:" "$PLAN" | cut -d':' -f2- | xargs)
+HTF=$(grep -i "HTF" "$PLAN" | cut -d':' -f2- | xargs)
+KEY=$(grep -i "Key Level" "$PLAN" | cut -d':' -f2- | xargs)
+LIQ=$(grep -i "Liq" "$PLAN" | cut -d':' -f2- | xargs)
+ENTRY=$(grep -i "Entry" "$PLAN" | cut -d':' -f2- | xargs)
 
-BIAS=$(get_field "Bias")
-HTF=$(get_field "HTF")
-KEYLVL=$(get_field "Key Level")
-LIQ=$(get_field "Liquidity")
-ENTRY=$(get_field "Entry Model")
-SESS=$(get_field "Session Fokus")
-INVAL=$(get_field "Invalidation")
-
-# 3. Default jika kosong
 [ -z "$BIAS" ] && BIAS="(isi Bias)"
-[ -z "$HTF" ] && HTF="(isi struktur H4/H1)"
-[ -z "$KEYLVL" ] && KEYLVL="(isi level)"
-[ -z "$LIQ" ] && LIQ="(isi liquidity)"
-[ -z "$ENTRY" ] && ENTRY="(isi entry model)"
-[ -z "$SESS" ] && SESS="(isi sesi)"
-[ -z "$INVAL" ] && INVAL="(isi invalidation)"
+[ -z "$HTF" ] && HTF="(isi Struktur H4/H1)"
+[ -z "$KEY" ] && KEY="(isi Key Level)"
+[ -z "$LIQ" ] && LIQ="(isi Liquidity)"
+[ -z "$ENTRY" ] && ENTRY="(isi Entry Model)"
 
-# 4. Analisis otomatis berdasarkan bias dan struktur
-bias_lower=$(echo "$BIAS" | tr '[:upper:]' '[:lower:]')
-if echo "$bias_lower" | grep -qi "bear"; then
-  DIRECTION="Bias: BEARISH"
-  STRATEGY="Tunggu harga ke PREMIUM, cari sweep BuySide Liquidity lalu konfirmasi FVG/OB untuk sell."
+# Tentukan otomatis Bearish/Bullish
+if echo "$BIAS" | grep -qi "bear"; then
+  DIR="Bias: BEARISH"
+  STRAT="Tunggu PREMIUM → sweep BuySide Liquidity → konfirmasi FVG/OB → SELL."
 else
-  DIRECTION="Bias: BULLISH"
-  STRATEGY="Tunggu harga ke DISCOUNT, cari sweep SellSide Liquidity lalu konfirmasi FVG/OB untuk buy."
+  DIR="Bias: BULLISH"
+  STRAT="Tunggu DISCOUNT → sweep SellSide Liquidity → konfirmasi FVG/OB → BUY."
 fi
 
 read -r -d '' WARNING << 'WAR'
 ==================== WARNING ====================
 - Hindari entry tanpa konfirmasi M5/M1
 - Waspada MSS palsu tanpa retest OB/FVG
-- Jangan entry di equilibrium; tunggu premium/discount
-- Perhatikan apakah sweep atau breakout (candlestick close)
+- Jangan entry di equilibrium (premium/discount wajib)
+- Sweep vs Breakout cek candle close
 - Hindari entry Asia kecuali ada sweep + konfirmasi
-- Rutin catat jurnal setelah entry
+- Wajib catat jurnal setelah entry
 =================================================
 WAR
 
-# 5. Susun hasil analisis
-cat > "$ANALYZE_FILE" << EOF2
-🔎 ANALISIS TRADING PLAN ($DATE)
+cat > "$ANALYZE" << EOF2
+🔎 ANALISIS TRADING PLAN ($(date +%F))
 
-$DIRECTION
+$DIR
 Struktur HTF: $HTF
-Key Level: $KEYLVL
+Key Level: $KEY
 Liquidity: $LIQ
 Entry Model: $ENTRY
-Session Fokus: $SESS
-Invalidation: $INVAL
 
 Strategi:
-$STRATEGY
+$STRAT
 
 $WARNING
 EOF2
 
-log "Analisis tersimpan: $ANALYZE_FILE"
+log "✅ Analisis tersimpan: $ANALYZE"
 
-# 6. Kirim ke Telegram kalau bot aktif
-if [ -f "$ENV" ] && [ -x "$SEND" ]; then
-  bash "$SEND" "$(cat "$ANALYZE_FILE")" >/dev/null 2>&1 && log "✅ Terkirim ke Telegram"
-else
-  log "⚠️ Telegram tidak dikirim (token/chat ID tidak ditemukan)"
+# Kirim Telegram jika token & chat tersedia
+if [ -f "$ROOT/.env" ]; then
+  source "$ROOT/.env"
+  curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+    -d chat_id="$TELEGRAM_CHAT_ID" \
+    --data-urlencode text@"$ANALYZE" >/dev/null 2>&1 \
+    && log "📨 Terkirim ke Telegram" \
+    || log "⚠ Gagal kirim Telegram"
 fi
 
-# 7. Commit & push GitHub
-git -C "$ROOT" add "$ANALYZE_FILE" >/dev/null 2>&1
-git -C "$ROOT" commit -m "Analysis $DATE" >/dev/null 2>&1 || true
-git -C "$ROOT" push origin main >/dev/null 2>&1 && log "✅ Push ke GitHub" || log "⚠️ Push gagal"
-
+# Push GitHub jika ada perubahan
+git -C "$ROOT" add "$ANALYZE" >/dev/null 2>&1
+if git -C "$ROOT" commit -m "Analysis $(date +%F-%H:%M:%S)" >/dev/null 2>&1; then
+  git -C "$ROOT" push origin main >/dev/null 2>&1 && log "✅ Push GitHub" || log "⚠ Push gagal"
+else
+  log "ℹ Tidak ada perubahan baru — skip push"
+fi

@@ -1,37 +1,32 @@
 #!/bin/bash
-set -e
 
 ROOT="$HOME/xau-sentinel"
 PLAN_DIR="$ROOT/plans"
-ANL_DIR="$ROOT/analyses"
-LOG="$ROOT/.sync.log"
+ANALYZE_DIR="$ROOT/analyses"
 ENV="$ROOT/.env"
 SEND="$ROOT/tg-send.sh"
+LOG="$ROOT/.plan.log"
 
-mkdir -p "$PLAN_DIR" "$ANL_DIR"
+mkdir -p "$PLAN_DIR" "$ANALYZE_DIR"
 
 DATE=$(date +%F)
-PLAN="$PLAN_DIR/$DATE.md"
-ANL="$ANL_DIR/$DATE.md"
+PLAN_FILE="$PLAN_DIR/$DATE.md"
+ANALYZE_FILE="$ANALYZE_DIR/$DATE.md"
 
-# 1) Siapkan PLAN jika belum ada
-if [ ! -f "$PLAN" ]; then
-  sed "s/YYYY-MM-DD/$DATE/" "$ROOT/plan-template.md" > "$PLAN"
-  echo "[INFO] Plan $PLAN dibuat dari template." | tee -a "$LOG"
+log() { echo "[$(date '+%H:%M:%S')] $1" | tee -a "$LOG"; }
+
+# 1. Cek / buat plan jika belum ada
+if [ ! -f "$PLAN_FILE" ]; then
+  sed "s/YYYY-MM-DD/$DATE/" "$ROOT/plan-template.md" > "$PLAN_FILE"
+  log "Plan dibuat otomatis: $PLAN_FILE"
+else
+  log "Plan ditemukan: $PLAN_FILE"
 fi
 
-# 2) Ambil field dari PLAN (case-insensitive)
-low() { tr '[:upper:]' '[:lower:]'; }
-
-get_field () {
-  # Cari baris "Key: value" tanpa peduli kapitalisasi
-  awk -v KEY="$1" '
-    BEGIN{IGNORECASE=1}
-    $0 ~ "^"KEY"[[:space:]]*:" {
-      sub("^[^:]*:[[:space:]]*", "", $0);
-      print $0; exit
-    }
-  ' "$PLAN"
+# 2. Ambil data dari plan
+get_field() {
+  awk -v KEY="$1" 'BEGIN{IGNORECASE=1} 
+  $0 ~ "^"KEY"[[:space:]]*:" {sub("^[^:]*:[[:space:]]*", "", $0); print; exit}' "$PLAN_FILE"
 }
 
 BIAS=$(get_field "Bias")
@@ -42,83 +37,65 @@ ENTRY=$(get_field "Entry Model")
 SESS=$(get_field "Session Fokus")
 INVAL=$(get_field "Invalidation")
 
-# Defaults aman
-[ -z "$BIAS" ]  && BIAS="(isi Bias)"
-[ -z "$HTF" ]   && HTF="(isi HTF H4/H1)"
-[ -z "$KEYLVL" ]&& KEYLVL="(isi level)"
-[ -z "$LIQ" ]   && LIQ="(isi liquidity)"
+# 3. Default jika kosong
+[ -z "$BIAS" ] && BIAS="(isi Bias)"
+[ -z "$HTF" ] && HTF="(isi struktur H4/H1)"
+[ -z "$KEYLVL" ] && KEYLVL="(isi level)"
+[ -z "$LIQ" ] && LIQ="(isi liquidity)"
 [ -z "$ENTRY" ] && ENTRY="(isi entry model)"
-[ -z "$SESS" ]  && SESS="(isi sesi)"
+[ -z "$SESS" ] && SESS="(isi sesi)"
 [ -z "$INVAL" ] && INVAL="(isi invalidation)"
 
-# 3) Logika analisis ringkas (sesuai bias + HTF + level)
-bias_l=$(echo "$BIAS" | low)
-htf_l=$(echo "$HTF" | low)
-
-DIRECTION="—"
-PREMIUMDISCOUNT=""
-PLAYBOOK=""
-RISKNOTE=""
-
-if echo "$bias_l" | grep -qi "bear"; then
+# 4. Analisis otomatis berdasarkan bias dan struktur
+bias_lower=$(echo "$BIAS" | tr '[:upper:]' '[:lower:]')
+if echo "$bias_lower" | grep -qi "bear"; then
   DIRECTION="Bias: BEARISH"
-  PLAYBOOK="Fokus SELL dari PREMIUM setelah sweep buyside lalu konfirmasi FVG/OB retest."
-  RISKNOTE="Jangan entry di equilibrium; tunggu harga kembali ke premium sebelum sell."
+  STRATEGY="Tunggu harga ke PREMIUM, cari sweep BuySide Liquidity lalu konfirmasi FVG/OB untuk sell."
 else
   DIRECTION="Bias: BULLISH"
-  PLAYBOOK="Fokus BUY dari DISCOUNT setelah sweep sellside lalu konfirmasi FVG/OB retest."
-  RISKNOTE="Jangan entry di equilibrium; tunggu harga kembali ke discount sebelum buy."
+  STRATEGY="Tunggu harga ke DISCOUNT, cari sweep SellSide Liquidity lalu konfirmasi FVG/OB untuk buy."
 fi
 
-if echo "$htf_l" | grep -qi "premium"; then
-  PREMIUMDISCOUNT="HTF: Harga di PREMIUM — tunggu rebalancing/return-to-mean lalu ambil setup pro-bias."
-elif echo "$htf_l" | grep -qi "discount"; then
-  PREMIUMDISCOUNT="HTF: Harga di DISCOUNT — tunggu sweep sisi berlawanan lalu ambil setup pro-bias."
-else
-  PREMIUMDISCOUNT="HTF: (cek premium/discount di H4/H1)."
-fi
-
-# 4) WARNING BLOCK – kebiasaan aman (ringkas)
-read -r -d '' WARNING << 'WB'
+read -r -d '' WARNING << 'WAR'
 ==================== WARNING ====================
-- HINDARI ENTRY TANPA KONFIRMASI M5/M1.
-- WASPADA MSS TRAP TANPA RETEST OB/FVG.
-- JANGAN ENTRY DI EQUILIBRIUM; CARI PREMIUM/DISCOUNT.
-- IDENTIFIKASI SWEEP vs BREAKOUT (cek close/timeframe).
-- HINDARI EKSEKUSI ASIA KECUALI ADA SWEEP + KONFIRMASI.
-- JANGAN LUPA LOG/SCREENSHOT SETELAH EKSEKUSI.
-================================================
-WB
+- Hindari entry tanpa konfirmasi M5/M1
+- Waspada MSS palsu tanpa retest OB/FVG
+- Jangan entry di equilibrium; tunggu premium/discount
+- Perhatikan apakah sweep atau breakout (candlestick close)
+- Hindari entry Asia kecuali ada sweep + konfirmasi
+- Rutin catat jurnal setelah entry
+=================================================
+WAR
 
-# 5) Susun analisis
-read -r -d '' BODY << EOF2
-ANALISIS PLAN — $DATE
+# 5. Susun hasil analisis
+cat > "$ANALYZE_FILE" << EOF2
+🔎 ANALISIS TRADING PLAN ($DATE)
 
 $DIRECTION
-$PREMIUMDISCOUNT
-Playbook: $PLAYBOOK
-
+Struktur HTF: $HTF
 Key Level: $KEYLVL
 Liquidity: $LIQ
 Entry Model: $ENTRY
 Session Fokus: $SESS
 Invalidation: $INVAL
 
+Strategi:
+$STRATEGY
+
 $WARNING
 EOF2
 
-# 6) Simpan ke analyses/ + commit + push
-echo "$BODY" > "$ANL"
-echo "[ANALYZE] $ANL ditulis." | tee -a "$LOG"
+log "Analisis tersimpan: $ANALYZE_FILE"
 
-# commit & push (fail-safe, jangan ganggu loop lain)
-git -C "$ROOT" add "$ANL" >/dev/null 2>&1 || true
-git -C "$ROOT" commit -m "analysis: $DATE" >/dev/null 2>&1 || true
-git -C "$ROOT" push origin main >/dev/null 2>&1 || true
-
-# 7) Kirim ke Telegram bila tersedia
+# 6. Kirim ke Telegram kalau bot aktif
 if [ -f "$ENV" ] && [ -x "$SEND" ]; then
-  bash "$SEND" "$BODY" || true
+  bash "$SEND" "$(cat "$ANALYZE_FILE")" >/dev/null 2>&1 && log "✅ Terkirim ke Telegram"
+else
+  log "⚠️ Telegram tidak dikirim (token/chat ID tidak ditemukan)"
 fi
 
-exit 0
+# 7. Commit & push GitHub
+git -C "$ROOT" add "$ANALYZE_FILE" >/dev/null 2>&1
+git -C "$ROOT" commit -m "Analysis $DATE" >/dev/null 2>&1 || true
+git -C "$ROOT" push origin main >/dev/null 2>&1 && log "✅ Push ke GitHub" || log "⚠️ Push gagal"
+

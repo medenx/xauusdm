@@ -1,16 +1,32 @@
-import express from "express";
-import dotenv from "dotenv";
-
-dotenv.config();
+const express = require('express');
+const axios = require('axios');
 const app = express();
-app.use(express.json());
+const PORT = 3000;
 
-app.get("/", (req, res) => {
-  res.json({ status: "OK", message: "Server lokal di Termux berjalan tanpa Telegram/Railway." });
+// Ambil harga dari Metals.live (fallback API cepat)
+async function getGoldPrice() {
+  try {
+    const { data } = await axios.get('https://api.metals.live/v1/spot');
+    return data[0].gold; // format: [{ gold: 4009.8, silver: xx }]
+  } catch (err) {
+    return null;
+  }
+}
+
+// Endpoint utama
+app.get('/xau', async (req, res) => {
+  const price = await getGoldPrice();
+  if (!price) {
+    return res.json({ error: "Gagal ambil harga emas" });
+  }
+  res.json({ symbol: "XAUUSD", price });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server lokal aktif di port ${PORT}`));
+// Root cek server
+app.get('/', (req, res) => {
+  res.send("✅ XAU Proxy Server aktif. Gunakan /xau");
+});
 
-process.on("uncaughtException", (err) => console.error("⚠️ Uncaught Exception:", err));
-process.on("unhandledRejection", (reason) => console.error("⚠️ Unhandled Rejection:", reason));
+app.listen(PORT, () => {
+  console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+});

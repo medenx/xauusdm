@@ -1,8 +1,10 @@
 #!/bin/bash
-ROOT="$HOME/xau-sentinel"
-LOG="$ROOT/.entry.log"
-
+set -euo pipefail
+LOCK="$HOME/xau-sentinel/.entry.lock"
 while true; do
-  bash "$ROOT/entry-alert.sh"
-  sleep 60  # cek tiap 1 menit
+  (
+    flock -n 9 || exit 0
+    bash "$HOME/xau-sentinel/entry-alert.sh"
+  ) 9>"$LOCK"
+  sleep 60
 done

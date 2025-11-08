@@ -6,12 +6,12 @@ const { sendTelegramMessage } = require("./utils/telegram");
 const app = express();
 app.use(bodyParser.json());
 
-// Root endpoint
+// Root
 app.get("/", (req, res) => {
   res.send("✅ XAU-Sentinel Server Aktif");
 });
 
-// Endpoint kirim Telegram manual
+// POST /send (INI WAJIB ADA BIAR TIDAK ERROR)
 app.post("/send", async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: "Text tidak boleh kosong" });
@@ -20,7 +20,6 @@ app.post("/send", async (req, res) => {
   res.json({ status: "Pesan dikirim", text });
 });
 
-// Jalankan server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`✅ Server berjalan di port ${PORT}`);

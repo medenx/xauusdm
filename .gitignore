@@ -10,3 +10,4 @@ server.log
 npm-debug.log
 *.bak
 *.old
+node_modules

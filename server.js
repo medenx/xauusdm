@@ -1,27 +1,27 @@
-import express from "express";
-import dotenv from "dotenv";
-import { handleUpdate } from "./utils/handler.js";
+const express = require("express");
+const bodyParser = require("body-parser");
+require("dotenv").config();
+const { sendTelegramMessage } = require("./utils/telegram");
 
-dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 8080;
+app.use(bodyParser.json());
 
-app.use(express.json());
-
+// Root endpoint
 app.get("/", (req, res) => {
-  res.send("✅ XAU Sentinel aktif");
+  res.send("✅ XAU-Sentinel Server Aktif");
 });
 
-app.post("/webhook", async (req, res) => {
-  try {
-    await handleUpdate(req.body);
-    res.status(200).json({ ok: true });
-  } catch (err) {
-    console.error("❌ Webhook Error:", err.message);
-    res.status(500).json({ ok: false });
-  }
+// Endpoint kirim Telegram manual
+app.post("/send", async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: "Text tidak boleh kosong" });
+
+  await sendTelegramMessage(text);
+  res.json({ status: "Pesan dikirim", text });
 });
 
+// Jalankan server
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`✅ Server berjalan di port ${PORT}`);
 });

@@ -5,6 +5,7 @@ node_modules/
 *.log
 .sync.log
 .sync.log.*
+*.gz
 
 # Caches & temps
 .cache/
@@ -12,6 +13,7 @@ node_modules/
 tmp/
 dist/
 build/
+coverage/
 
 # OS files
 .DS_Store
@@ -22,6 +24,12 @@ Thumbs.db
 .env.local
 *.local
 
-# Editors
+# Editors & IDE
 .vscode/
 .idea/
+*.swp
+*~   # backup editor
+
+# System
+*.bak
+*.orig

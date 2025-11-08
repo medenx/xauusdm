@@ -1,28 +1,18 @@
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
-const sendTelegramMessage = async (text) => {
+const sendTelegramMessage = async (text, chatId = process.env.TELEGRAM_CHAT_ID) => {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.CHAT_ID;
-
-  if (!token || !chatId) {
-    console.log("❌ TELEGRAM_BOT_TOKEN atau CHAT_ID belum di-set.");
-    return;
-  }
-
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  const payload = { chat_id: chatId, text };
-
+  if (!token || !chatId) return console.log("❌ Token / Chat ID belum diset");
   try {
-    const res = await fetch(url, {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ chat_id: chatId, text })
     });
     const data = await res.json();
     console.log("✅ Telegram Response:", data);
-  } catch (error) {
-    console.error("❌ Gagal kirim pesan Telegram:", error);
+  } catch (err) {
+    console.error("❌ Gagal kirim pesan:", err);
   }
 };
-
 module.exports = { sendTelegramMessage };

@@ -3,20 +3,19 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-/**
- * Ambil harga XAU/USD dari MarketWatch (tidak pakai SSL tinggi)
- * Format parsing HTML -> ambil angka terakhir di tag <bg-quote>
- */
 async function getGoldPrice() {
   try {
-    const res = await axios.get('http://www.marketwatch.com/investing/future/gold', {
+    const res = await axios.get('https://api.metals.live/v1/spot/gold', {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
-
-    const match = res.data.match(/"last":([0-9]+\.[0-9]+)/);
-    return match ? parseFloat(match[1]) : null;
+    // Format data: [[timestamp, price]]
+    if (Array.isArray(res.data) && res.data.length > 0) {
+      return res.data[0][1];
+    } else {
+      throw new Error('Format API berubah');
+    }
   } catch (err) {
-    console.error('Gagal ambil harga:', err.message);
+    console.error("Gagal ambil harga:", err.message);
     return null;
   }
 }
@@ -24,11 +23,11 @@ async function getGoldPrice() {
 app.get('/xau', async (req, res) => {
   const price = await getGoldPrice();
   if (!price) {
-    return res.status(500).json({ error: 'Gagal ambil harga' });
+    return res.status(500).json({ error: "Gagal ambil harga emas" });
   }
-  res.json({ symbol: 'XAUUSD', price });
+  res.json({ symbol: "XAUUSD", price });
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Proxy server berjalan di port ${PORT}`);
+  console.log(`✅ Proxy server aktif di port ${PORT}`);
 });

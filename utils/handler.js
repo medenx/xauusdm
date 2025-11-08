@@ -6,8 +6,8 @@ export async function handleUpdate(update) {
   const text = update.message.text || "";
 
   if (text.startsWith("/start")) {
-    return sendTelegram(chatId, "Bot siap ✔ Sistem otomatis aktif.");
+    return sendTelegram("✅ Bot aktif — sistem berjalan lancar.", chatId);
   }
 
-  return sendTelegram(chatId, `📩 Kamu kirim: ${text}`);
+  return sendTelegram(`📩 Kamu kirim: ${text}`, chatId);
 }

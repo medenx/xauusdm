@@ -1,6 +1,7 @@
 #!/bin/bash
 ROOT="$HOME/xau-sentinel"
 TARGET="06:30"
+
 while true; do
   NOW=$(date +%H:%M)
   if [ "$NOW" = "$TARGET" ]; then

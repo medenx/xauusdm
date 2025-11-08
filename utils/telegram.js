@@ -7,8 +7,7 @@ export async function sendTelegram(text, chatId) {
     const targetChat = chatId || defaultChat;
 
     if (!token || !targetChat) {
-      console.log("⚠️  Bot token atau chat ID belum diatur (ENV).");
-      return;
+      return console.log("⚠️ TOKEN atau CHAT ID belum diatur di .env");
     }
 
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -18,8 +17,10 @@ export async function sendTelegram(text, chatId) {
     });
 
     const data = await res.json();
-    console.log("✅ Telegram Response:", data);
+    if (!data.ok) {
+      console.log("⚠️ Telegram API respon error:", data);
+    }
   } catch (err) {
-    console.error("❌ Gagal mengirim Telegram:", err);
+    console.error("❌ Error kirim Telegram:", err);
   }
 }

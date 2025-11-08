@@ -1,13 +1,20 @@
 import { sendTelegram } from "./telegram.js";
 
 export async function handleUpdate(update) {
-  if (!update.message) return;
-  const chatId = update.message.chat.id;
-  const text = update.message.text || "";
+  try {
+    if (!update?.message?.chat?.id) {
+      console.log("⚠️ Update tidak valid atau tanpa chat ID.");
+      return;
+    }
+    const chatId = update.message.chat.id;
+    const text = update.message.text || "";
 
-  if (text.startsWith("/start")) {
-    return sendTelegram("✅ Bot aktif — sistem berjalan lancar.", chatId);
+    if (text.startsWith("/start")) {
+      return sendTelegram("✅ Bot aktif dan siap menerima perintah.", chatId);
+    }
+
+    return sendTelegram(`📩 Kamu mengirim: ${text}`, chatId);
+  } catch (err) {
+    console.error("❌ Error di handleUpdate:", err);
   }
-
-  return sendTelegram(`📩 Kamu kirim: ${text}`, chatId);
 }

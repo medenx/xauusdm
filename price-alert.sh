@@ -1,18 +1,15 @@
 #!/bin/bash
 ROOT="$HOME/xau-sentinel"
-PLAN="$ROOT/plans/$(date +%F).md"
 LOG="$ROOT/.price.log"
-
+PLAN="$ROOT/plans/$(date +%F).md"
 source "$ROOT/.env" 2>/dev/null
 
 log(){ echo "[$(date '+%H:%M:%S')] $1" | tee -a "$LOG"; }
 
-# Ambil harga dari proxy server Yahoo Finance (lokal)
 get_price() {
   curl -s http://localhost:3000/xau | grep -o '"price":[0-9]*\.[0-9]*' | cut -d':' -f2
 }
 
-# Ambil key level dari trading plan
 get_key_levels() {
   grep -i "Key Level" "$PLAN" | cut -d':' -f2- | tr -d ' ' | tr '/' ' '
 }
@@ -21,7 +18,6 @@ log "=== PRICE ALERT STARTED ($(date)) ==="
 
 while true; do
   PRICE=$(get_price)
-
   if [ -z "$PRICE" ]; then
     log "⚠️ Gagal ambil harga dari Proxy lokal"
     sleep 60
@@ -31,21 +27,19 @@ while true; do
   log "✅ Harga XAUUSD sekarang: $PRICE"
 
   LEVELS=$(get_key_levels)
-
   for LEVEL in $LEVELS; do
     DIFF=$(echo "$PRICE - $LEVEL" | bc)
     ABS_DIFF="${DIFF#-}"
 
     if (( $(echo "$ABS_DIFF < 1.00" | bc -l) )); then
       MSG="⚠️ XAUUSD mendekati Key Level $LEVEL
-Harga sekarang: $PRICE
-Waspada sweep atau rejection."
+Harga: $PRICE"
 
       curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-        -d chat_id="$TELEGRAM_CHAT_ID" \
-        --data-urlencode text="$MSG" >/dev/null
+      -d chat_id="$TELEGRAM_CHAT_ID" \
+      --data-urlencode text="$MSG" >/dev/null
 
-      log "📨 ALERT TERKIRIM (Level=$LEVEL | Price=$PRICE)"
+      log "📨 ALERT TERKIRIM (Level=$LEVEL / Price=$PRICE)"
     fi
   done
 

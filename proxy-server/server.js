@@ -3,19 +3,17 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Ambil harga XAU/USD dari Yahoo Finance (GC=F = Gold Futures)
 async function getGoldPrice() {
   try {
-    const res = await axios.get('https://api.metals.live/v1/spot/gold', {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    // Format data: [[timestamp, price]]
-    if (Array.isArray(res.data) && res.data.length > 0) {
-      return res.data[0][1];
-    } else {
-      throw new Error('Format API berubah');
-    }
+    const res = await axios.get(
+      'https://query1.finance.yahoo.com/v8/finance/chart/GC=F'
+    );
+    const result = res.data.chart.result[0];
+    const price = result.meta.regularMarketPrice;
+    return price;
   } catch (err) {
-    console.error("Gagal ambil harga:", err.message);
+    console.error("Error Yahoo Finance:", err.message);
     return null;
   }
 }
@@ -23,9 +21,9 @@ async function getGoldPrice() {
 app.get('/xau', async (req, res) => {
   const price = await getGoldPrice();
   if (!price) {
-    return res.status(500).json({ error: "Gagal ambil harga emas" });
+    return res.status(500).json({ error: 'Gagal ambil harga emas dari Yahoo' });
   }
-  res.json({ symbol: "XAUUSD", price });
+  res.json({ symbol: 'XAUUSD', price });
 });
 
 app.listen(PORT, () => {

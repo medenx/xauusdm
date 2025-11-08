@@ -1,28 +1,24 @@
 #!/bin/bash
 
 PROJECT_DIR="$HOME/xau-sentinel"
+cd "$PROJECT_DIR" || { echo "❌ Folder project tidak ditemukan"; exit 1; }
 
-# Masuk ke folder project
-cd $PROJECT_DIR || { echo "Folder project tidak ditemukan!"; exit 1; }
+echo "🔄 Menarik update terbaru dari GitHub..."
+git pull --rebase
 
-# Cek apakah ini repo git
-if [ ! -d ".git" ]; then
-    echo "Ini bukan repository Git!"
-    exit 1
+# Cek perubahan
+if git diff --quiet && git diff --cached --quiet; then
+  echo "⚠️ Tidak ada perubahan untuk di-commit."
+  exit 0
 fi
 
-echo "Menjalankan Git Add..."
+echo "✅ Menambahkan perubahan..."
 git add .
 
-echo "Commit perubahan..."
-git commit -m "auto update"
+echo "✅ Commit otomatis..."
+git commit -m "Auto-sync: $(date '+%Y-%m-%d %H:%M:%S')"
 
-echo "Push ke GitHub..."
+echo "🚀 Push ke GitHub..."
 git push origin main
 
-if [ $? -eq 0 ]; then
-    echo "Push berhasil → Deploy ke Railway..."
-    railway up
-else
-    echo "Push gagal → Railway tidak dijalankan"
-fi
+echo "✅ Sinkronisasi GitHub selesai!"

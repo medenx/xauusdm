@@ -72,3 +72,28 @@ error: failed to push some refs to 'https://github.com/medenx/xau-sentinel.git'
 ❌ Push origin gagal (Sat Nov  8 15:35:29 WIB 2025)
 ⏳ Cek sinkron (Sat Nov  8 15:36:29 WIB 2025)...
 ⏳ Cek sinkron (Sat Nov  8 15:36:29 WIB 2025)...
+fatal: Unable to create '/data/data/com.termux/files/home/xau-sentinel/.git/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+[main e93b523] AutoSync-local: 2025-11-08 15:36:29
+ 1 file changed, 29 insertions(+)
+fatal: Cannot rebase onto multiple branches.
+fatal: Cannot rebase onto multiple branches.
+⚠️ Rebase gagal — fallback merge (Sat Nov  8 15:36:30 WIB 2025)
+⚠️ Rebase gagal — fallback merge (Sat Nov  8 15:36:30 WIB 2025)
+Already up to date.
+Already up to date.
+To https://github.com/medenx/xau-sentinel.git
+   af46d86..e93b523  main -> main
+To https://github.com/medenx/xau-sentinel.git
+ ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main': is at e93b523946a76a729905099b813fc72a84baf3c0 but expected af46d86907ec90e44e3efa03139a2b3c82fa7087)
+error: failed to push some refs to 'https://github.com/medenx/xau-sentinel.git'
+✅ Push ke origin/main (Sat Nov  8 15:36:33 WIB 2025)
+❌ Push origin gagal (Sat Nov  8 15:36:33 WIB 2025)
+=== Auto-sync start (Sat Nov  8 15:37:42 WIB 2025) ===
+Already up to date.
+⏳ Cek sinkron (Sat Nov  8 15:37:43 WIB 2025)...

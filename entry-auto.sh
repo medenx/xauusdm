@@ -1,5 +1,4 @@
 #!/bin/bash
-set -euo pipefail
 LOCK="$HOME/xau-sentinel/.entry.lock"
 while true; do
   (

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
 
 ROOT="$HOME/xau-sentinel"
 ENV="$ROOT/.env"
